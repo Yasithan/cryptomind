@@ -9,12 +9,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check
 app.get('/', (req, res) => {
   res.json({ status: 'CryptoMind proxy running', time: new Date().toISOString() });
 });
 
-// Helper: fetch Binance and throw on API errors
 async function binanceFetch(url) {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
@@ -24,7 +22,6 @@ async function binanceFetch(url) {
   return data;
 }
 
-// GET /api/ping — diagnostic: is Binance reachable from Render?
 app.get('/api/ping', async (req, res) => {
   try {
     const price = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT').then(r => r.json());
@@ -34,7 +31,6 @@ app.get('/api/ping', async (req, res) => {
   }
 });
 
-// GET /api/ticker/BTCUSDT
 app.get('/api/ticker/:symbol', async (req, res) => {
   try {
     const data = await binanceFetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${req.params.symbol.toUpperCase()}`);
@@ -44,7 +40,6 @@ app.get('/api/ticker/:symbol', async (req, res) => {
   }
 });
 
-// GET /api/klines/BTCUSDT?interval=1h&limit=24
 app.get('/api/klines/:symbol', async (req, res) => {
   try {
     const { interval = '1h', limit = 24 } = req.query;
