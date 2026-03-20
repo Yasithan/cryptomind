@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CryptoMind Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#070b0f;--panel:#0c1117;--border:#182030;
+  --accent:#00ff88;--accent2:#00aaff;--warn:#ff6b35;--red:#ff4455;
+  --text:#c0d0e0;--muted:#3a5060;--glow:0 0 24px rgba(0,255,136,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,136,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.025) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+.container{max-width:900px;margin:0 auto;padding:20px 14px;position:relative;z-index:1;}
+header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.logo{width:38px;height:38px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:var(--glow);flex-shrink:0;}
+.brand h1{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:#fff;}
+.brand p{font-size:0.65rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.live-badge{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:0.65rem;color:var(--accent);letter-spacing:1px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* Proxy config bar */
+.proxy-bar{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.proxy-bar label{font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+.proxy-bar input{flex:1;min-width:200px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;padding:6px 10px;outline:none;}
+.proxy-bar input:focus{border-color:var(--accent);}
+.proxy-status{font-size:0.68rem;padding:4px 10px;border-radius:4px;white-space:nowrap;}
+.proxy-status.ok{background:rgba(0,255,136,0.1);color:var(--accent);border:1px solid rgba(0,255,136,0.2);}
+.proxy-status.err{background:rgba(255,68,85,0.1);color:var(--red);border:1px solid rgba(255,68,85,0.2);}
+.proxy-status.checking{background:rgba(0,170,255,0.1);color:var(--accent2);border:1px solid rgba(0,170,255,0.2);}
+.save-btn{background:var(--accent);color:#000;border:none;border-radius:5px;padding:6px 14px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.72rem;cursor:pointer;}
+
+.coins-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+.coin-btn{padding:6px 14px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:'Space Mono',monospace;font-size:0.72rem;cursor:pointer;transition:all 0.15s;letter-spacing:1px;}
+.coin-btn:hover,.coin-btn.active{border-color:var(--accent);color:var(--accent);box-shadow:var(--glow);}
+
+#tickerPanel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px;min-height:80px;display:flex;align-items:center;}
+.ticker-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;width:100%;}
+.ticker-item{display:flex;flex-direction:column;gap:3px;}
+.ticker-label{font-size:0.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+.ticker-value{font-size:0.9rem;color:#fff;font-weight:700;}
+.ticker-value.up{color:var(--accent);}
+.ticker-value.down{color:var(--red);}
+.ticker-sym{font-size:0.65rem;color:var(--accent2);letter-spacing:2px;margin-bottom:8px;font-family:'Syne',sans-serif;font-weight:700;}
+.fetch-time{font-size:0.6rem;color:var(--muted);margin-top:8px;}
+.loading-ticker{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:0.75rem;}
+.mini-loader{display:flex;gap:3px;}
+.mini-loader span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:bounce 1s infinite;}
+.mini-loader span:nth-child(2){animation-delay:0.15s;}
+.mini-loader span:nth-child(3){animation-delay:0.3s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-5px);opacity:1}}
+
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:36px;margin-top:4px;}
+.spark-bar{width:5px;border-radius:1px;background:var(--accent);opacity:0.75;}
+.spark-bar.red{background:var(--red);}
+.rsi-wrap{margin-top:4px;}
+.rsi-track{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--accent) 0%,#ffaa00 50%,var(--red) 100%);position:relative;}
+.rsi-pin{position:absolute;top:-4px;width:11px;height:11px;background:#fff;border-radius:50%;transform:translateX(-50%);border:2px solid var(--bg);}
+.rsi-nums{display:flex;justify-content:space-between;font-size:0.55rem;color:var(--muted);margin-top:2px;}
+
+.input-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;}
+.input-label{font-size:0.62rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.input-row{display:flex;gap:8px;align-items:flex-end;}
+textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.8rem;padding:10px;resize:none;min-height:64px;outline:none;transition:border-color 0.2s;line-height:1.5;}
+textarea:focus{border-color:var(--accent);}
+textarea::placeholder{color:var(--muted);}
+.analyze-btn{background:var(--accent);color:#000;border:none;border-radius:6px;padding:10px 18px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;white-space:nowrap;align-self:stretch;}
+.analyze-btn:hover:not(:disabled){box-shadow:var(--glow);transform:translateY(-1px);}
+.analyze-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.presets{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.preset{font-size:0.65rem;padding:3px 9px;background:transparent;border:1px solid var(--border);border-radius:20px;color:var(--muted);cursor:pointer;font-family:'Space Mono',monospace;transition:all 0.15s;}
+.preset:hover{border-color:var(--accent2);color:var(--accent2);}
+
+.chat-area{display:flex;flex-direction:column;gap:14px;}
+.msg{border-radius:8px;padding:14px 18px;font-size:0.8rem;line-height:1.7;animation:fadeUp 0.3s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg-user{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--accent2);}
+.msg-user .msg-label{font-size:0.62rem;letter-spacing:2px;color:var(--accent2);margin-bottom:5px;text-transform:uppercase;}
+.msg-ai{background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.12);border-left:3px solid var(--accent);}
+.msg-ai .msg-label{font-size:0.62rem;letter-spacing:2px;color:var(--accent);margin-bottom:5px;text-transform:uppercase;display:flex;align-items:center;gap:6px;}
+.msg-loading{background:rgba(0,255,136,0.02);border:1px solid rgba(0,255,136,0.08);border-left:3px solid var(--accent);display:flex;align-items:center;gap:10px;color:var(--muted);font-size:0.76rem;padding:14px 18px;border-radius:8px;}
+.data-badge{display:inline-block;background:rgba(0,170,255,0.1);border:1px solid rgba(0,170,255,0.2);border-radius:3px;padding:1px 6px;font-size:0.62rem;color:var(--accent2);margin-left:6px;}
+.msg-content h3{font-family:'Syne',sans-serif;font-size:0.9rem;color:#fff;margin:12px 0 4px;font-weight:700;}
+.msg-content h3:first-child{margin-top:0;}
+.msg-content p{margin-bottom:8px;}
+.msg-content p:last-child{margin-bottom:0;}
+.msg-content ul{padding-left:16px;margin-bottom:8px;}
+.msg-content li{margin-bottom:3px;}
+.msg-content strong{color:var(--accent);}
+.msg-content em{color:var(--accent2);font-style:normal;}
+.tag-bull{color:#00ff88;font-weight:700;}
+.tag-bear{color:#ff4455;font-weight:700;}
+.tag-neutral{color:#ffaa00;font-weight:700;}
+.disclaimer{margin-top:20px;padding:10px 14px;background:rgba(255,107,53,0.05);border:1px solid rgba(255,107,53,0.18);border-radius:6px;font-size:0.65rem;color:var(--warn);line-height:1.6;}
+.disclaimer strong{color:#ff8c5a;}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">📡</div>
+    <div class="brand">
+      <h1>CryptoMind Live</h1>
+      <p>Binance API · AI Analysis</p>
+    </div>
+    <div class="live-badge"><div class="dot"></div> BINANCE LIVE</div>
+  </header>
+
+  <!-- Proxy URL config -->
+  <div class="proxy-bar">
+    <label>Proxy URL</label>
+    <input type="text" id="proxyUrl" placeholder="https://your-proxy.onrender.com" />
+    <button class="save-btn" onclick="saveProxy()">Connect</button>
+    <span id="proxyStatus" class="proxy-status checking">Not connected</span>
+  </div>
+
+  <div class="coins-row">
+    <button class="coin-btn active" onclick="selectCoin(this,'BTCUSDT','BTC')">BTC</button>
+    <button class="coin-btn" onclick="selectCoin(this,'ETHUSDT','ETH')">ETH</button>
+    <button class="coin-btn" onclick="selectCoin(this,'BNBUSDT','BNB')">BNB</button>
+    <button class="coin-btn" onclick="selectCoin(this,'SOLUSDT','SOL')">SOL</button>
+    <button class="coin-btn" onclick="selectCoin(this,'XRPUSDT','XRP')">XRP</button>
+    <button class="coin-btn" onclick="selectCoin(this,'DOGEUSDT','DOGE')">DOGE</button>
+    <button class="coin-btn" onclick="selectCoin(this,'ADAUSDT','ADA')">ADA</button>
+    <button class="coin-btn" onclick="selectCoin(this,'AVAXUSDT','AVAX')">AVAX</button>
+  </div>
+
+  <div id="tickerPanel">
+    <div class="loading-ticker" style="color:var(--muted);font-size:0.75rem">Enter your proxy URL above and click Connect to load live Binance data</div>
+  </div>
+
+  <div class="input-panel">
+    <div class="input-label">// Ask with live market context</div>
+    <div class="input-row">
+      <textarea id="userInput" placeholder="Connect your proxy first, then ask e.g. 'Should I buy BTC now?'"></textarea>
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">ANALYZE →</button>
+    </div>
+    <div class="presets">
+      <button class="preset" onclick="fillPreset('Based on the current price and volume, should I buy or sell right now?')">Buy or Sell?</button>
+      <button class="preset" onclick="fillPreset('Is this a good entry point for a short-term $50 profit trade?')">$50 Profit Entry?</button>
+      <button class="preset" onclick="fillPreset('What does the current trend and volume tell us about the next move?')">Trend Analysis</button>
+      <button class="preset" onclick="fillPreset('What stop-loss and take-profit levels would you recommend?')">Stop-Loss / TP</button>
+      <button class="preset" onclick="fillPreset('Is this coin overbought or oversold right now?')">Overbought / Oversold?</button>
+    </div>
+  </div>
+
+  <div class="chat-area" id="chatArea"></div>
+
+  <div class="disclaimer">
+    <strong>⚠ DISCLAIMER:</strong> Live data sourced from Binance via your proxy. AI analysis is for <strong>educational purposes only — NOT financial advice.</strong> Crypto is extremely risky. Never invest more than you can afford to lose.
+  </div>
+</div>
+
+<script>
+let proxyBase = localStorage.getItem('cryptomind_proxy') || '';
+let currentSymbol = 'BTCUSDT';
+let currentName   = 'BTC';
+let liveData      = null;
+let chatHistory   = [];
+
+// ── Proxy setup ────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (proxyBase) {
+    document.getElementById('proxyUrl').value = proxyBase;
+    checkProxy(proxyBase);
+  }
+  document.getElementById('userInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); analyze(); }
+  });
+  addMsg('ai', `[NEUTRAL]\n\n### Welcome to CryptoMind Live 🟢\n\nThis version uses your own **Binance proxy** for live data.\n\n**To get started:**\n1. Paste your Render proxy URL above (e.g. https://my-proxy.onrender.com)\n2. Click **Connect**\n3. Select a coin and start asking questions!\n\nIf you haven't deployed the proxy yet, follow the setup guide.`);
+});
+
+async function checkProxy(url) {
+  const el = document.getElementById('proxyStatus');
+  el.className = 'proxy-status checking';
+  el.textContent = 'Checking...';
+  try {
+    const res = await fetch(url.replace(/\/$/, '') + '/');
+    if (res.ok) {
+      el.className = 'proxy-status ok';
+      el.textContent = '✓ Connected';
+      return true;
+    }
+    throw new Error('HTTP ' + res.status);
+  } catch(e) {
+    el.className = 'proxy-status err';
+    el.textContent = '✗ ' + e.message;
+    return false;
+  }
+}
+
+async function saveProxy() {
+  let url = document.getElementById('proxyUrl').value.trim().replace(/\/$/, '');
+  if (!url) return;
+  if (!url.startsWith('http')) url = 'https://' + url;
+  proxyBase = url;
+  localStorage.setItem('cryptomind_proxy', url);
+  const ok = await checkProxy(url);
+  if (ok) fetchLiveData(currentSymbol, currentName);
+}
+
+// ── Binance via proxy ──────────────────────────────────────────────────────
+async function fetchLiveData(symbol, name) {
+  if (!proxyBase) return;
+  showTickerLoading();
+  try {
+    const [ticker, klines] = await Promise.all([
+      fetch(`${proxyBase}/api/ticker/${symbol}`).then(r => r.json()),
+      fetch(`${proxyBase}/api/klines/${symbol}?interval=1h&limit=24`).then(r => r.json())
+    ]);
+    if (ticker.code) throw new Error(ticker.msg || 'Binance error');
+    const closes = klines.map(k => parseFloat(k[4]));
+    const highs   = klines.map(k => parseFloat(k[2]));
+    const lows    = klines.map(k => parseFloat(k[3]));
+    const volumes = klines.map(k => parseFloat(k[5]));
+    const rsi     = calcRSI(closes, 14);
+    const trend   = detectTrend(closes);
+    const vwap    = calcVWAP(klines);
+
+    liveData = {
+      name,
+      price:     parseFloat(ticker.lastPrice),
+      change24h: parseFloat(ticker.priceChangePercent),
+      high24h:   parseFloat(ticker.highPrice),
+      low24h:    parseFloat(ticker.lowPrice),
+      volume24h: parseFloat(ticker.quoteVolume),
+      rsi, trend, vwap,
+      candles: klines.slice(-24).map(k => ({
+        o: parseFloat(k[1]), h: parseFloat(k[2]),
+        l: parseFloat(k[3]), c: parseFloat(k[4]),
+        v: parseFloat(k[5])
+      })),
+      fetchedAt: new Date().toLocaleTimeString()
+    };
+    renderTicker(liveData);
+    document.getElementById('userInput').placeholder = `${name} loaded ✓  — Ask e.g. "Should I buy ${name} now?"`;
+  } catch(e) {
+    document.getElementById('tickerPanel').innerHTML =
+      `<div style="color:var(--warn);font-size:0.78rem">⚠ ${e.message}<br><span style="color:var(--muted);font-size:0.68rem">Check your proxy URL and make sure it's running.</span></div>`;
+  }
+}
+
+function calcRSI(p, n=14) {
+  let g=0,l=0;
+  for(let i=1;i<=n;i++){const d=p[i]-p[i-1];d>0?g+=d:l-=d;}
+  let ag=g/n,al=l/n;
+  for(let i=n+1;i<p.length;i++){const d=p[i]-p[i-1];ag=(ag*(n-1)+Math.max(d,0))/n;al=(al*(n-1)+Math.max(-d,0))/n;}
+  return al===0?100:Math.round(100-100/(1+ag/al));
+}
+function detectTrend(c){
+  if(c.length<12)return'UNKNOWN';
+  const r=c.slice(-6),e=c.slice(-12,-6);
+  const ar=r.reduce((a,b)=>a+b,0)/r.length,ae=e.reduce((a,b)=>a+b,0)/e.length;
+  const p=((ar-ae)/ae)*100;
+  return p>0.5?'UPTREND ↑':p<-0.5?'DOWNTREND ↓':'SIDEWAYS →';
+}
+function calcVWAP(klines){
+  let tv=0,tpv=0;
+  klines.forEach(k=>{const tp=(parseFloat(k[2])+parseFloat(k[3])+parseFloat(k[4]))/3,v=parseFloat(k[5]);tpv+=tp*v;tv+=v;});
+  return tv?tpv/tv:0;
+}
+
+// ── Render ticker ──────────────────────────────────────────────────────────
+function renderTicker(d) {
+  const up=d.change24h>=0;
+  const rC=d.rsi>70?'var(--red)':d.rsi<30?'var(--accent)':'var(--accent2)';
+  const rL=d.rsi>70?'OVERBOUGHT':d.rsi<30?'OVERSOLD':'NEUTRAL';
+  const tC=d.trend.includes('UP')?'up':d.trend.includes('DOWN')?'down':'';
+  const min=Math.min(...d.candles.map(c=>c.l)),max=Math.max(...d.candles.map(c=>c.h)),range=max-min||1;
+  const spark=d.candles.map((c,i)=>{
+    const h=Math.max(3,Math.round(((c.c-min)/range)*33));
+    return `<div class="spark-bar${c.c<c.o?' red':''}" style="height:${h}px"></div>`;
+  }).join('');
+  const rP=Math.min(100,Math.max(0,d.rsi));
+  document.getElementById('tickerPanel').innerHTML=`
+    <div style="width:100%">
+      <div class="ticker-sym">${d.name}/USDT &nbsp;·&nbsp; VWAP: $${fmt(d.vwap)}</div>
+      <div class="ticker-grid">
+        <div class="ticker-item"><div class="ticker-label">Price</div><div class="ticker-value">$${fmt(d.price)}</div></div>
+        <div class="ticker-item"><div class="ticker-label">24h Change</div><div class="ticker-value ${up?'up':'down'}">${up?'+':''}${d.change24h.toFixed(2)}%</div></div>
+        <div class="ticker-item"><div class="ticker-label">24h High / Low</div><div class="ticker-value" style="font-size:0.72rem">$${fmt(d.high24h)} / $${fmt(d.low24h)}</div></div>
+        <div class="ticker-item"><div class="ticker-label">24h Volume</div><div class="ticker-value">$${fmtB(d.volume24h)}</div></div>
+        <div class="ticker-item">
+          <div class="ticker-label">RSI (14)</div>
+          <div class="ticker-value" style="color:${rC}">${d.rsi} <span style="font-size:0.58rem">${rL}</span></div>
+          <div class="rsi-wrap"><div class="rsi-track"><div class="rsi-pin" style="left:${rP}%"></div></div><div class="rsi-nums"><span>0</span><span>30</span><span>70</span><span>100</span></div></div>
+        </div>
+        <div class="ticker-item">
+          <div class="ticker-label">Trend (12h)</div>
+          <div class="ticker-value ${tC}" style="font-size:0.76rem">${d.trend}</div>
+          <div class="sparkline">${spark}</div>
+        </div>
+      </div>
+      <div class="fetch-time">Updated: ${d.fetchedAt} · Binance via proxy</div>
+    </div>`;
+}
+
+function fmt(n){if(!n)return'0';if(n>=1000)return n.toLocaleString('en',{maximumFractionDigits:2});if(n>=1)return n.toFixed(4);return n.toFixed(6);}
+function fmtB(n){if(n>=1e9)return(n/1e9).toFixed(2)+'B';if(n>=1e6)return(n/1e6).toFixed(2)+'M';return n.toFixed(0);}
+function showTickerLoading(){document.getElementById('tickerPanel').innerHTML=`<div class="loading-ticker"><div class="mini-loader"><span></span><span></span><span></span></div>Fetching from Binance...</div>`;}
+
+function selectCoin(btn,sym,name){
+  document.querySelectorAll('.coin-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSymbol=sym;currentName=name;
+  if(proxyBase)fetchLiveData(sym,name);
+}
+
+// ── Build Claude context ───────────────────────────────────────────────────
+function buildContext(){
+  if(!liveData)return'';
+  const d=liveData;
+  const rNote=d.rsi>70?'OVERBOUGHT — reversal risk':d.rsi<30?'OVERSOLD — bounce possible':'Neutral zone';
+  return`=== LIVE BINANCE DATA (via proxy · ${d.fetchedAt}) ===
+Pair: ${d.name}/USDT
+Price: $${fmt(d.price)}
+24h Change: ${d.change24h.toFixed(2)}%
+24h High: $${fmt(d.high24h)} | 24h Low: $${fmt(d.low24h)}
+24h Volume (USDT): $${fmtB(d.volume24h)}
+RSI (14, 1h): ${d.rsi} — ${rNote}
+VWAP (24h): $${fmt(d.vwap)}
+Price vs VWAP: ${d.price>d.vwap?'ABOVE (bullish bias)':'BELOW (bearish bias)'}
+Trend (last 12h vs prior 12h): ${d.trend}
+Last 12 candles (1h OHLCV): ${JSON.stringify(d.candles.slice(-12).map(c=>({o:fmt(c.o),h:fmt(c.h),l:fmt(c.l),c:fmt(c.c),v:fmtB(c.v)})))}
+===`;
+}
+
+// ── Analyze ────────────────────────────────────────────────────────────────
+async function analyze(){
+  const input=document.getElementById('userInput');
+  const btn=document.getElementById('analyzeBtn');
+  const q=input.value.trim();
+  if(!q)return;
+  if(!liveData){addMsg('ai','⚠ Connect your proxy and select a coin first.');return;}
+  const ctx=buildContext();
+  input.value='';btn.disabled=true;
+  addMsg('user',`[${currentName}] ${q}`,true);
+  addLoading();
+  chatHistory.push({role:'user',content:`${ctx}\n\nUser question: ${q}`});
+
+  const SYSTEM=`You are CryptoMind, a professional crypto market analyst with access to LIVE Binance market data.
+Always reference the actual numbers given: price, RSI, VWAP, volume, trend, candles.
+Start with [BULLISH], [BEARISH], or [NEUTRAL].
+Use ### headers: Market Snapshot, Signal Analysis, Short-Term Strategy, Risk Management.
+Bold key figures. For trade suggestions give specific $entry, $take-profit, $stop-loss.
+Under 450 words. End with a risk reminder. Educational only, not financial advice.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYSTEM,messages:chatHistory})
+    });
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'No response.';
+    chatHistory[chatHistory.length-1].content=`[Live ${currentName} Binance data provided] ${q}`;
+    chatHistory.push({role:'assistant',content:reply});
+    removeLoading();addMsg('ai',reply,false,true);
+  }catch(e){removeLoading();addMsg('ai','**Error:** Could not connect to AI.');}
+  btn.disabled=false;
+}
+
+// ── Chat UI ────────────────────────────────────────────────────────────────
+function addMsg(role,text,isUser=false,isAI=false){
+  const area=document.getElementById('chatArea');
+  const div=document.createElement('div');
+  div.className=`msg msg-${isUser?'user':'ai'}`;
+  if(isUser){
+    div.innerHTML=`<div class="msg-label">YOU</div><div class="msg-content">${esc(text)}</div>`;
+  }else{
+    const badge=isAI&&liveData?`<span class="data-badge">BINANCE LIVE</span>`:'';
+    div.innerHTML=`<div class="msg-label"><div class="dot"></div> CRYPTOMIND AI ${badge}</div><div class="msg-content">${fmtAI(text)}</div>`;
+  }
+  area.appendChild(div);div.scrollIntoView({behavior:'smooth',block:'end'});
+}
+function addLoading(){
+  const area=document.getElementById('chatArea');
+  const div=document.createElement('div');
+  div.className='msg-loading';div.id='loadingMsg';
+  div.innerHTML=`<div class="mini-loader"><span></span><span></span><span></span></div> Analyzing live Binance data...`;
+  area.appendChild(div);div.scrollIntoView({behavior:'smooth',block:'end'});
+}
+function removeLoading(){const el=document.getElementById('loadingMsg');if(el)el.remove();}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtAI(t){
+  t=t.replace(/\[BULLISH\]/g,'<span class="tag-bull">[BULLISH 🟢]</span>');
+  t=t.replace(/\[BEARISH\]/g,'<span class="tag-bear">[BEARISH 🔴]</span>');
+  t=t.replace(/\[NEUTRAL\]/g,'<span class="tag-neutral">[NEUTRAL 🟡]</span>');
+  t=t.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+  t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  t=t.replace(/^[-•] (.+)$/gm,'<li>$1</li>');
+  t=t.replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>');
+  t=t.split('\n\n').map(p=>p.trim()?`<p>${p.replace(/\n/g,'<br>')}</p>`:'').join('');
+  return t;
+}
+function fillPreset(text){document.getElementById('userInput').value=text;document.getElementById('userInput').focus();}
+</script>
+</body>
+</html>
